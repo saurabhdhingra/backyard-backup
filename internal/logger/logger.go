@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	InfoLogger *log.Logger
+	InfoLogger  *log.Logger
 	ErrorLogger *log.Logger
 )
 
@@ -34,10 +34,19 @@ func Init(logLevel, logFile string) error {
 	return nil
 }
 
-func Info(format string, v ...interface{}){
+func Info(format string, v ...interface{}) {
 	if InfoLogger != nil {
 		InfoLogger.Printf(format, v...)
-	}else{
-		fmt.Printf()
+	} else {
+		// Fallback
+		fmt.Printf("INFO: "+format+"\n", v...)
+	}
+}
+
+func Error(format string, v ...interface{}) {
+	if ErrorLogger != nil {
+		ErrorLogger.Printf(format, v...)
+	} else {
+		fmt.Printf("ERROR: "+format+"\n", v...)
 	}
 }
