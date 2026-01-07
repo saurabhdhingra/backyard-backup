@@ -1,0 +1,33 @@
+database:
+  type: "postgres" # Options: postgres, mysql, sqlite, mongodb
+  # host: "localhost"
+  # port: 5432
+  # user: "postgres"
+  # password: "your_password"
+  # dbname: "your_db_name"
+  
+  # OR use a connection string (DSN) - Recommended for NeonDB/Cloud/MongoDB
+  dsn: "postgresql://user:password@host:port/dbname?sslmode=require"
+  # For MongoDB:
+  # dsn: "mongodb://user:password@host:port/dbname"
+  # type: "mongodb"
+
+storage:
+  type: "local" # Options: local, s3
+  path: "./backups" # Used for local storage
+  # bucket: "your-bucket-name" # Used for s3
+  # region: "us-east-1"        # Used for s3
+  # access_key: "your_access_key" # Used for s3
+  # secret_key: "your_secret_key" # Used for s3
+
+backup:
+  schedule: "@daily" # Cron schedule (e.g. @daily, @hourly, "0 0 * * *")
+  compression: true  # Enable gzip compression
+
+notify:
+  enabled: false
+  slack_webhook: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+
+log:
+  level: "info"
+  file: "backup.log"

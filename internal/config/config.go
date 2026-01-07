@@ -54,7 +54,7 @@ func LoadConfig(cfgFile string) (*Config, error) {
 	} else {
 		viper.AddConfigPath(".")
 		viper.AddConfigPath("$HOME/.backyard-backup")
-		viper.SetConfigFile("config")
+		viper.SetConfigName("config")
 		viper.SetConfigType("yaml")
 	}
 

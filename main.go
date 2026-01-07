@@ -4,6 +4,6 @@ import (
 	"github.com/saurabhdhingra/backyard-backup/cmd"
 )
 
-func main(){
+func main() {
 	cmd.Execute()
 }

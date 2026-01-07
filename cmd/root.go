@@ -19,26 +19,31 @@ var rootCmd = &cobra.Command{
 supported (PostgreSQL, MySQL, MongoDB, SQLite) to local or cloud storage.`,
 }
 
-func Execute(){
+// Execute adds all child commands to the root command and sets flags appropriately.
+func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 }
 
-func init(){
+func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "confif file (default id $HOME/.backyard-backup/config.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.backyard-backup/config.yaml)")
 }
 
+// initConfig reads in config file and ENV variables if set.
 func initConfig() {
 	var err error
 	AppConfig, err = config.LoadConfig(cfgFile)
 	if err != nil {
+		// If config file is not found, we might want to allow running help or init commands
+		// without crashing, but for backup commands it will be required.
+		// For now, we'll just print a warning if not found, unless a specific file was provided.
 		if cfgFile != "" {
 			fmt.Printf("Error loading config file: %v\n", err)
 			os.Exit(1)
 		}
-	} 
+	}
 }
