@@ -3,9 +3,12 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/robfig/cron/v3"
+	"github.com/saurabhdhingra/backyard-backup/internal/notify"
 	"github.com/spf13/cobra"
 )
 
@@ -21,33 +24,21 @@ var scheduleCmd = &cobra.Command{
 
 		c := cron.New()
 		_, err := c.AddFunc(schedule, func() {
-			fmt.Println("Running scheduled backup...", time.Now())
-			// We can call the backup logic directly or execute the command
-			// Calling Run of backupCmd is a bit tricky due to args/flags handling.
-			// Best to extract logic or re-execute binary.
-			// For simplicity here, we'll invoke the backupCmd.Run logic efficiently or refactor backup logic to a function.
-			// However, in this simple CLI, calling backupCmd.Run(cmd, []string{}) might work if no specific flags are required.
-			// But backupCmd doesn't return error, it exits. We should probably refactor 'Run' to 'RunE' and return error.
-			// Ideally, we extract `RunBackup` function.
-			// Since we haven't refactored, we will mimic the call.
-			// BEWARE: os.Exit in backupCmd will kill the scheduler.
-			// I need to refactor backupCmd to NOT os.Exit.
+			fmt.Printf("[%s] Running scheduled backup...\n", time.Now().Format(time.RFC3339))
 
-			// For now, let's print a message that actual scheduling requires refactoring backup logic.
-			// Or better, let's just spawning a subprocess
-			// exec.Command(os.Args[0], "backup").Run()
-			// This is safer for isolation.
+			if err := RunBackup(); err != nil {
+				fmt.Printf("[%s] Scheduled backup failed: %v\n", time.Now().Format(time.RFC3339), err)
+				// Send failure notification if configured
+				if AppConfig.Notify.Enabled && AppConfig.Notify.SlackWebhook != "" {
+					notifyErr := notifyBackupFailure(err)
+					if notifyErr != nil {
+						fmt.Printf("Warning: failed to send failure notification: %v\n", notifyErr)
+					}
+				}
+				return
+			}
 
-			// Implementation with subprocess:
-			// self, _ := os.Executable()
-			// cmd := exec.Command(self, "backup")
-			// cmd.Stdout = os.Stdout
-			// cmd.Stderr = os.Stderr
-			// cmd.Run()
-
-			// Note: os.Executable might not be clean in 'go run'.
-			fmt.Println("Triggering backup job...")
-			backupCmd.Run(backupCmd, []string{})
+			fmt.Printf("[%s] Scheduled backup completed successfully\n", time.Now().Format(time.RFC3339))
 		})
 
 		if err != nil {
@@ -57,10 +48,23 @@ var scheduleCmd = &cobra.Command{
 
 		c.Start()
 		fmt.Printf("Backup scheduler started with schedule: %s\n", schedule)
+		fmt.Println("Press Ctrl+C to stop the scheduler")
 
-		// Block forever
-		select {}
+		// Handle graceful shutdown
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+		<-sigChan
+
+		fmt.Println("\nShutting down scheduler...")
+		c.Stop()
+		fmt.Println("Scheduler stopped")
 	},
+}
+
+// notifyBackupFailure sends a Slack notification about backup failure
+func notifyBackupFailure(err error) error {
+	msg := fmt.Sprintf("🚨 Backup failed: %v", err)
+	return notify.SendSlackNotification(AppConfig.Notify.SlackWebhook, msg)
 }
 
 func init() {
